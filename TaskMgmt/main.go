@@ -1,0 +1,150 @@
+package main
+
+import (
+	"database/sql"
+	"log"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
+)
+
+var db *sql.DB
+
+type Task struct {
+	ID          int    `json:"id"`
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description"`
+	DueDate     string `json:"due_date" binding:"required"`
+	Status      string `json:"status"`
+}
+
+func main() {
+	InitDB()
+
+	router := gin.Default()
+
+	router.POST("/tasks", CreateTask)
+	router.GET("/tasks/:id", GetTask)
+	router.PUT("/tasks/:id", UpdateTask)
+	router.DELETE("/tasks/:id", DeleteTask)
+	router.GET("/tasks", ListTasks)
+
+	router.Run(":8080")
+}
+
+// DATABASE CREATION
+func InitDB() {
+	var err error
+	db, err = sql.Open("sqlite3", "./tasks.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Create the tasks table if it doesn't exist
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		title TEXT NOT NULL,
+		description TEXT,
+		due_date TEXT,
+		status TEXT
+	);`)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// CREATE
+func CreateTask(c *gin.Context) {
+	var task Task
+	if err := c.ShouldBindJSON(&task); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Insert the task into the database
+	result, err := db.Exec("INSERT INTO tasks (title, description, due_date, status) VALUES (?, ?, ?, ?)",
+		task.Title, task.Description, task.DueDate, task.Status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get the ID of the inserted task
+	id, _ := result.LastInsertId()
+	task.ID = int(id)
+
+	c.JSON(http.StatusOK, task)
+}
+
+// RETRIVE
+func GetTask(c *gin.Context) {
+	id := c.Param("id")
+
+	var task Task
+	err := db.QueryRow("SELECT * FROM tasks WHERE id = ?", id).Scan(
+		&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Status)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
+}
+
+// UPDATE
+func UpdateTask(c *gin.Context) {
+	id := c.Param("id")
+
+	var task Task
+	if err := c.ShouldBindJSON(&task); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update the task in the database
+	_, err := db.Exec("UPDATE tasks SET title = ?, description = ?, due_date = ?, status = ? WHERE id = ?",
+		task.Title, task.Description, task.DueDate, task.Status, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
+}
+
+// DELETE
+func DeleteTask(c *gin.Context) {
+	id := c.Param("id")
+
+	// Delete the task from the database
+	_, err := db.Exec("DELETE FROM tasks WHERE id = ?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
+}
+
+// LIST_ALL
+func ListTasks(c *gin.Context) {
+	rows, err := db.Query("SELECT * FROM tasks")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	tasks := []Task{}
+	for rows.Next() {
+		var task Task
+		err := rows.Scan(&task.ID, &task.Title, &task.Description, &task.DueDate, &task.Status)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		tasks = append(tasks, task)
+	}
+
+	c.JSON(http.StatusOK, tasks)
+}
