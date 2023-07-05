@@ -1,4 +1,4 @@
-Here's a sample README file for my GitHub repository based on the provided code:
+Here's a sample README file for my GitHub repository based on the main.go code:
 
 # Task Management API
 
