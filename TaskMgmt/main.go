@@ -24,7 +24,7 @@ func main() {
 
 	router := gin.Default()
 
-	router.POST("/tasks", CreateTask)
+	router.POST("/tasks", CreateTasks)
 	router.GET("/tasks/:id", GetTask)
 	router.PUT("/tasks/:id", UpdateTask)
 	router.DELETE("/tasks/:id", DeleteTask)
@@ -54,26 +54,31 @@ func InitDB() {
 }
 
 // CREATE
-func CreateTask(c *gin.Context) {
-	var task Task
-	if err := c.ShouldBindJSON(&task); err != nil {
+func CreateTasks(c *gin.Context) {
+	var tasks []Task
+	if err := c.ShouldBindJSON(&tasks); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Insert the task into the database
-	result, err := db.Exec("INSERT INTO tasks (title, description, due_date, status) VALUES (?, ?, ?, ?)",
-		task.Title, task.Description, task.DueDate, task.Status)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	createdTasks := make([]Task, len(tasks))
+	for i, task := range tasks {
+		// Insert the task into the database
+		result, err := db.Exec("INSERT INTO tasks (title, description, due_date, status) VALUES (?, ?, ?, ?)",
+			task.Title, task.Description, task.DueDate, task.Status)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Get the ID of the inserted task
+		id, _ := result.LastInsertId()
+		task.ID = int(id)
+
+		createdTasks[i] = task
 	}
 
-	// Get the ID of the inserted task
-	id, _ := result.LastInsertId()
-	task.ID = int(id)
-
-	c.JSON(http.StatusOK, task)
+	c.JSON(http.StatusOK, createdTasks)
 }
 
 // RETRIVE
