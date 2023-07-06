@@ -92,8 +92,9 @@ func GetTask(c *gin.Context) {
 }
 
 // UPDATE
+
 func UpdateTask(c *gin.Context) {
-	id := c.Param("id")
+	id := c.Param("id") // Get the id parameter from the request URL
 
 	var task Task
 	if err := c.ShouldBindJSON(&task); err != nil {
@@ -101,15 +102,29 @@ func UpdateTask(c *gin.Context) {
 		return
 	}
 
-	// Update the task in the database
-	_, err := db.Exec("UPDATE tasks SET title = ?, description = ?, due_date = ?, status = ? WHERE id = ?",
-		task.Title, task.Description, task.DueDate, task.Status, id)
+	// Retrieve the existing task from the database
+	var existingTask Task
+	err := db.QueryRow("SELECT * FROM tasks WHERE id = ?", id).Scan(&existingTask.ID, &existingTask.Title, &existingTask.Description, &existingTask.DueDate, &existingTask.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, task)
+	// Update the fields of the existing task
+	existingTask.Title = task.Title
+	existingTask.Description = task.Description
+	existingTask.DueDate = task.DueDate
+	existingTask.Status = task.Status
+
+	// Update the task in the database
+	_, err = db.Exec("UPDATE tasks SET title = ?, description = ?, due_date = ?, status = ? WHERE id = ?",
+		existingTask.Title, existingTask.Description, existingTask.DueDate, existingTask.Status, existingTask.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, existingTask)
 }
 
 // DELETE
