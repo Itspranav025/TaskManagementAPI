@@ -42,24 +42,28 @@ This is a simple Task Management API implemented in Go using the Gin framework a
 **Request Body:**
 
 ```json
-{
-  "title": "Task 1",
-  "description": "This is task 1",
-  "due_date": "2023-07-05",
-  "status": "Pending"
-}
+[
+   {
+     "title": "Task 1",
+     "description": "This is task 1",
+     "due_date": "2023-07-05",
+     "status": "Pending"
+   }
+]
 ```
 
 **Response:**
 
 ```json
-{
-  "id": 1,
-  "title": "Task 1",
-  "description": "This is task 1",
-  "due_date": "2023-07-05",
-  "status": "Pending"
-}
+[
+   {
+     "id": 1,
+     "title": "Task 1",
+     "description": "This is task 1",
+     "due_date": "2023-07-05",
+     "status": "Pending"
+   }
+]
 ```
 
 ### Get a Task
