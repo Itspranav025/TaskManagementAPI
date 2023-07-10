@@ -163,3 +163,8 @@ CREATE TABLE IF NOT EXISTS tasks (
   status TEXT
 );
 ```
+## Workflow Architecture
+![workf](https://github.com/Itspranav025/TaskManagementAPI/assets/88264892/d9fa752e-b841-4e4d-be2e-5f5d4f4f28b0)
+
+## Application Architecture
+![ApplicationArchitecture](https://github.com/Itspranav025/TaskManagementAPI/assets/88264892/826c779c-d17b-44ba-8f08-29e62549de7b)
